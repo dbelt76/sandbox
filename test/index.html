@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+
+<html>
+
+	<head>
+
+		<meta charset="utf-8">
+
+		<title>SWAPI Demo</title>
+
+		<meta name="description" content="">
+
+		<meta name="viewport" content="width=device-width">
+
+    </head>
+<body>
+    <div id="root"></div>
+
+<script>
+const app = document.getElementById('root');
+
+const wrapperTable = document.createElement('table');
+wrapperTable.border = "0";
+wrapperTable.cellPadding = "4";
+wrapperTable.cellSpacing = "0";
+wrapperTable.width = "100%";
+app.appendChild(wrapperTable);
+const wrapperRow = document.createElement('tr');
+wrapperTable.appendChild(wrapperRow);
+const wrapperLeftData = document.createElement('td');
+wrapperLeftData.align = 'left';
+wrapperLeftData.vAlign = 'top';
+wrapperRow.appendChild(wrapperLeftData);
+const wrapperRightData = document.createElement('td');
+wrapperRightData.align = 'right';
+wrapperRightData.vAlign = 'top';
+wrapperRow.appendChild(wrapperRightData);
+const totalFavoritesLink = document.createElement('a');
+totalFavoritesLink.href = 'testfavorites.html';
+wrapperRightData.appendChild(totalFavoritesLink);
+
+const table = document.createElement('table');
+wrapperLeftData.appendChild(table);
+
+const navTable = document.createElement('table');
+navTable.border = "0";
+navTable.cellPadding = "4";
+navTable.cellSpacing = "0";
+wrapperLeftData.appendChild(navTable);
+const navRow = document.createElement('tr');
+navTable.appendChild(navRow);
+
+var prevPlanetUrl = '';
+var prevPlanetName = '';
+
+function getPlanetName(planetUrl, element) {
+    if (prevPlanetUrl == planetUrl && prevPlanetName.length > 0) {
+        element.textContent = prevPlanetName;
+    } else {
+        var request = new XMLHttpRequest();
+        request.open('GET', planetUrl, true)
+        request.onload = function() {
+            var data = JSON.parse(this.response);
+            if (request.status >= 200 && request.status < 400) {
+                element.textContent = data.name;
+                prevPlanetUrl = planetUrl;
+                prevPlanetName = data.name;
+            }
+        }
+        request.send();
+    }
+}
+
+var url = new URL(window.location);
+var searchString = url.searchParams.get('search');
+var pageNumString = url.searchParams.get('page');
+var pageNum = 1;
+if (pageNumString != null) {
+    pageNum = parseInt(pageNumString, 10);
+}
+var nextPageNum = 0;
+var prevPageNum = 0;
+var params = '/?page=' + pageNum;
+if (searchString != null && searchString.length > 0) {
+    params += '&search=' + searchString;
+}
+
+function setPage(newPageNum) {
+    var newUrl = window.location.href.split('?')[0];
+    newUrl = newUrl + '?page=' + newPageNum;
+    if (searchString != null) {
+        newUrl += '&search=' + searchString;
+    }
+    window.location = newUrl;
+};
+
+function setFavorite(personId, checkboxId) {
+    var checkbox = document.getElementById(checkboxId);
+    if (checkbox != null && personId > 0) {
+        if (checkbox.checked) {
+            localStorage.setItem('fav' + personId, 'true');
+            var totalFavorites = 0;
+            var totalFavoritesString = localStorage.getItem('totalFavorites');
+            if (totalFavoritesString == null) {
+                totalFavorites = 0;
+            } else {
+                totalFavorites = parseInt(totalFavoritesString);
+                totalFavorites++;
+            }
+            localStorage.setItem('totalFavorites', totalFavorites);
+            totalFavoritesLink.textContent = 'Total Favorites: ' + totalFavorites;
+        } else {
+            localStorage.setItem('fav' + personId, 'false');
+            var totalFavorites = 0;
+            var totalFavoritesString = localStorage.getItem('totalFavorites');
+            if (totalFavoritesString == null) {
+                totalFavorites = 0;
+            } else {
+                totalFavorites = parseInt(totalFavoritesString);
+                totalFavorites--;
+                if (totalFavorites < 0) {
+                    totalFavorites = 0;
+                }
+            }
+            localStorage.setItem('totalFavorites', totalFavorites);
+            totalFavoritesLink.textContent = 'Total Favorites: ' + totalFavorites;
+        }
+    }
+}
+
+var request = new XMLHttpRequest();
+request.open('GET', 'https://swapi.co/api/people' + params, true);
+request.onload = function () {
+
+  // Begin accessing JSON data here
+  var data = JSON.parse(this.response);
+  if (request.status >= 200 && request.status < 400) {
+
+    table.border = "1";
+    table.cellPadding = "2";
+    table.cellSpacing = "0";
+    const headerRow = document.createElement('tr');
+    table.appendChild(headerRow);
+    const nameHeader = document.createElement('th');
+    nameHeader.textContent = 'Name';
+    headerRow.appendChild(nameHeader);
+    const birthHeader = document.createElement('th');
+    birthHeader.textContent = 'Birth';
+    headerRow.appendChild(birthHeader);
+    const homeHeader = document.createElement('th');
+    homeHeader.textContent = 'Home';
+    headerRow.appendChild(homeHeader);
+    const favoriteHeader = document.createElement('th');
+    favoriteHeader.textContent = 'Favorite';
+    headerRow.appendChild(favoriteHeader);
+    if (data.next != null) {
+        nextPageNum = pageNum + 1;
+    }
+    if (data.previous != null) {
+        prevPageNum = pageNum - 1;
+    }
+    if (prevPageNum > 0) {
+        const leftNavButton = document.createElement('input');
+        leftNavButton.type = "button";
+        leftNavButton.value = "PREV";
+        leftNavButton.id = 'leftNavButton';
+        leftNavButton.setAttribute('onclick', 'javascript: setPage(' + prevPageNum + ');');
+        const navData = document.createElement('td');
+        navData.align = "left";
+        navRow.appendChild(navData);
+        navData.appendChild(leftNavButton);
+    }
+    if (nextPageNum > 0) {
+        const rightNavButton = document.createElement('input');
+        rightNavButton.type = "button";
+        rightNavButton.value = "NEXT";
+        rightNavButton.id = 'rightNavButton';
+        rightNavButton.setAttribute('onclick', 'javascript: setPage(' + nextPageNum + ');');
+        const navData = document.createElement('td');
+        navData.align = "right";
+        navRow.appendChild(navData);
+        navData.appendChild(rightNavButton);
+    }
+    data.results.forEach(person => {
+        const dataRow = document.createElement('tr');
+        table.appendChild(dataRow);
+        const nameData = document.createElement('td');
+        nameData.textContent = person.name;
+        dataRow.appendChild(nameData);
+        const birthData = document.createElement('td');
+        birthData.textContent = person.birth_year;
+        dataRow.appendChild(birthData);
+        const homeData = document.createElement('td');
+        getPlanetName(person.homeworld, homeData);
+        dataRow.appendChild(homeData);
+        const favoriteData = document.createElement('td');
+        favoriteData.align = 'center';
+        const favoriteCheckBox = document.createElement('input');
+        favoriteCheckBox.type = 'checkbox';
+        var urlSegments = person.url.split('\/');
+        var personId = urlSegments[urlSegments.length - 2];
+        favoriteCheckBox.id = 'fav' + personId;
+        var checked = localStorage.getItem('fav' + personId);
+        if (checked != null && checked == 'true') {
+            favoriteCheckBox.checked = checked;
+        }
+        favoriteCheckBox.setAttribute('onclick', 'javascript: setFavorite(' + personId + ', \'' + favoriteCheckBox.id + '\');');
+        favoriteData.appendChild(favoriteCheckBox);
+        dataRow.appendChild(favoriteData);
+    });
+    const form = document.createElement('form');
+    form.action = '/test/';
+    const searchData = document.createElement('td');
+    const searchLabel = document.createElement('label');
+    searchLabel.textContent = 'Search: ';
+    form.appendChild(searchLabel);
+    const searchBox = document.createElement('input');
+    searchBox.type = 'text';
+    searchBox.id = 'search';
+    searchBox.name = 'search';
+    form.appendChild(searchBox);
+    if (searchString != null) {
+        searchBox.value = searchString;
+    }
+    const searchButton = document.createElement('input');
+    searchButton.type = "submit";
+    searchButton.value = "FILTER";
+    form.appendChild(searchButton);
+    searchData.appendChild(form);
+    navRow.appendChild(searchData);
+
+  } else {
+      confirm('Oops.');
+  }
+}
+
+request.send();    
+
+var totalFavs = localStorage.getItem('totalFavorites');
+if (totalFavs == null) {
+    totalFavs = '0';
+}
+totalFavoritesLink.textContent = 'Total Favorites: ' + totalFavs;
+
+
+    </script>
+    </body>
+</html>
